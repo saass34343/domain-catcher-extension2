@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (tabs[0].url.includes('expireddomains.net')) {
         chrome.tabs.sendMessage(tabs[0].id, {action: "startScan"});
       } else {
-        alert('Please navigate to expireddomains.net first');
+        alert('Please navigate to member.expireddomains.net/domains/pendingdelete/ first');
       }
     });
   });
