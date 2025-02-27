@@ -7,7 +7,7 @@ const adultKeywords = [
 
 // API endpoints for domain data (you'll need to replace these with actual APIs)
 const DOMAIN_API = {
-  EXPIRED_DOMAINS: 'https://api.expireddomains.net/v1/expired',
+  EXPIRED_DOMAINS: 'https://api.https://member.expireddomains.net/domains/pendingdelete//v1/expired',
   DOMAIN_METRICS: 'https://api.domainmetrics.com/v1/metrics',
   DOMAIN_AVAILABILITY: 'https://api.domainchecker.com/v1/check'
 };
