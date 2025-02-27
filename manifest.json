@@ -7,7 +7,7 @@
   "permissions": ["activeTab", "storage", "scripting"],
   "action": {
     "default_popup": "popup.html",
-  },
+  }
   "content_scripts": [
     {
       "matches": ["*://www.expireddomains.net/*"],
