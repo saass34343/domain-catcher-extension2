@@ -9,7 +9,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://www.member.expireddomains.net/*"],
+      "matches": ["*://www.member.expireddomains.net/domains/pendingdelete/*"],
       "js": ["content.js"]
     }
   ]
