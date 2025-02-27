@@ -33,7 +33,7 @@ function scanDomains() {
     const sv = parseInt(svText.replace(/,/g, '')) || 0;
     
     // Check SV criteria (10-9999)
-    if (sv < 10 || sv > 9999) return;
+    if (sv < 100 || sv > 99999) return;
     
     // Extract CPC
     const cpcElement = row.querySelector('td.field_avgcpc');
