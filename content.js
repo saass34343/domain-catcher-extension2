@@ -1,59 +1,72 @@
 // content.js
-// This script will run in the context of web pages
-// It can be used to extract domain-related information from websites
-
-// Listen for messages from the background script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'extractDomainData') {
-    // Extract domain data from the current page
-    // This is just a placeholder for actual implementation
-    const pageData = {
-      url: window.location.href,
-      title: document.title,
-      // Additional data could be scraped here
-    };
-    
-    sendResponse({ success: true, data: pageData });
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  if (request.action === "startScan") {
+    scanDomains();
   }
-  return true;
 });
 
-// Optional: Add functionality to detect expired domain lists on certain websites
-// and provide a quick way to filter them based on user's criteria
-document.addEventListener('DOMContentLoaded', () => {
-  // Check if current page contains expired domain lists
-  const isDomainListPage = 
-    window.location.href.includes('expireddomains.net') || 
-    window.location.href.includes('domainhunter.com');
-  
-  if (isDomainListPage) {
-    // Notify the background script that we're on a domain list page
+function scanDomains() {
+  // Get all domain rows from the table
+  const domainRows = document.querySelectorAll('table.base1 tbody tr');
+  const matchedDomains = [];
+
+  domainRows.forEach(row => {
+    // Extract domain name
+    const domainNameElement = row.querySelector('td.field_domain a');
+    if (!domainNameElement) return;
+    
+    const domainName = domainNameElement.textContent.trim();
+    
+    // Filter by length (8-24 characters)
+    if (domainName.length < 8 || domainName.length > 24) return;
+    
+    // Check if it contains only letters, numbers, and hyphens (no adult terms check is basic here)
+    if (!/^[a-zA-Z0-9-]+$/.test(domainName)) return;
+    
+    // Look for adult keywords (basic check)
+    const adultTerms = ['sex', 'porn', 'adult', 'xxx', 'nude', 'naked'];
+    if (adultTerms.some(term => domainName.toLowerCase().includes(term))) return;
+    
+    // Extract SV (Search Volume)
+    const svElement = row.querySelector('td.field_searchvolume');
+    const svText = svElement ? svElement.textContent.trim() : '0';
+    const sv = parseInt(svText.replace(/,/g, '')) || 0;
+    
+    // Check SV criteria (10-9999)
+    if (sv < 10 || sv > 9999) return;
+    
+    // Extract CPC
+    const cpcElement = row.querySelector('td.field_avgcpc');
+    const cpcText = cpcElement ? cpcElement.textContent.trim() : '0';
+    const cpc = parseFloat(cpcText.replace('$', '')) || 0;
+    
+    // Check CPC criteria (up to $1)
+    if (cpc > 1) return;
+    
+    // Check if it's a .net or .co domain
+    const tldMatch = domainName.match(/\.(net|co)$/i);
+    if (!tldMatch) return;
+    
+    // Check .com availability (would need checking the detailed page)
+    // Note: This is a simplified check. For a more accurate check,
+    // you would need to open each domain page.
+    const comAvailableElement = row.querySelector('td.field_statuscom');
+    const comAvailable = comAvailableElement ? comAvailableElement.textContent.trim() === 'available' : false;
+    
+    if (!comAvailable) return;
+    
+    // Domain matches all criteria
+    matchedDomains.push(domainName);
+  });
+
+  // Send matched domains to popup
+  if (matchedDomains.length > 0) {
     chrome.runtime.sendMessage({
-      action: 'onDomainListPage',
-      url: window.location.href
+      action: "domainsFound",
+      domains: matchedDomains
     });
-    
-    // Add a floating button to enable quick filtering
-    const filterButton = document.createElement('div');
-    filterButton.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 10px 15px;
-      background-color: #4285f4;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-      z-index: 10000;
-      font-family: Arial, sans-serif;
-      font-weight: bold;
-    `;
-    filterButton.textContent = 'Apply Domain Filters';
-    
-    filterButton.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ action: 'openPopup' });
-    });
-    
-    document.body.appendChild(filterButton);
   }
-});
+  
+  // Alert user
+  alert(`Scan complete! Found ${matchedDomains.length} domains matching your criteria.`);
+}
