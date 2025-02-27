@@ -1,61 +1,59 @@
 // popup.js
 document.addEventListener('DOMContentLoaded', function() {
-  const startSearchButton = document.getElementById('start-search');
-  const resultsContainer = document.getElementById('results');
-  const loader = document.getElementById('loader');
+  // Get DOM elements
+  const startScanButton = document.getElementById('startScan');
+  const clearResultsButton = document.getElementById('clearResults');
+  const resultsCount = document.getElementById('resultsCount');
+  const domainList = document.getElementById('domainList');
   
-  startSearchButton.addEventListener('click', function() {
-    // Get filter values
-    const svMin = parseInt(document.getElementById('sv-min').value) || 10;
-    const svMax = parseInt(document.getElementById('sv-max').value) || 9999;
-    const cpcMax = parseFloat(document.getElementById('cpc-max').value) || 1;
-    const minLength = parseInt(document.getElementById('min-length').value) || 8;
-    const maxLength = parseInt(document.getElementById('max-length').value) || 24;
-    const adultFilter = document.getElementById('adult-filter').checked;
-    
-    // Show loading indicator
-    loader.style.display = 'block';
-    resultsContainer.innerHTML = '';
-    
-    // Send message to background script with search criteria
-    chrome.runtime.sendMessage({
-      action: 'searchDomains',
-      filters: {
-        svMin,
-        svMax,
-        cpcMax,
-        minLength,
-        maxLength,
-        adultFilter,
-        tlds: ['.net', '.co'],
-        charactersOnly: true
-      }
-    }, function(response) {
-      // Hide loading indicator
-      loader.style.display = 'none';
-      
-      if (response && response.domains && response.domains.length > 0) {
-        // Display results
-        resultsContainer.innerHTML = '';
-        response.domains.forEach(domain => {
-          const domainItem = document.createElement('div');
-          domainItem.className = 'domain-item';
-          
-          domainItem.innerHTML = `
-            <div class="domain-name">${domain.name}</div>
-            <div class="domain-stats">
-              <span>SV: ${domain.sv}</span>
-              <span>CPC: $${domain.cpc.toFixed(2)}</span>
-              <span>Avail: ${domain.available ? 'Yes' : 'No'}</span>
-            </div>
-          `;
-          
-          resultsContainer.appendChild(domainItem);
-        });
+  // Load saved domains
+  loadDomains();
+  
+  // Add event listeners
+  startScanButton.addEventListener('click', function() {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      if (tabs[0].url.includes('expireddomains.net')) {
+        chrome.tabs.sendMessage(tabs[0].id, {action: "startScan"});
       } else {
-        // No results found
-        resultsContainer.innerHTML = '<div class="no-results">No matching domains found</div>';
+        alert('Please navigate to expireddomains.net first');
       }
     });
   });
+  
+  clearResultsButton.addEventListener('click', function() {
+    chrome.storage.local.set({domains: []}, function() {
+      loadDomains();
+    });
+  });
+  
+  // Listen for messages from content script
+  chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.action === "domainsFound") {
+      chrome.storage.local.get(['domains'], function(result) {
+        let domains = result.domains || [];
+        domains = domains.concat(request.domains);
+        // Remove duplicates
+        domains = [...new Set(domains)];
+        chrome.storage.local.set({domains: domains}, function() {
+          loadDomains();
+        });
+      });
+    }
+  });
+  
+  // Function to load domains from storage
+  function loadDomains() {
+    chrome.storage.local.get(['domains'], function(result) {
+      const domains = result.domains || [];
+      resultsCount.textContent = domains.length + ' domains found';
+      
+      domainList.innerHTML = '';
+      domains.forEach(function(domain) {
+        const domainItem = document.createElement('div');
+        domainItem.className = 'domain-item';
+        domainItem.textContent = domain;
+        domainList.appendChild(domainItem);
+      });
+    });
+  }
 });
