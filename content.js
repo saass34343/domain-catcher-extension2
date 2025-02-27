@@ -26,6 +26,8 @@ function scanDomains() {
     // Look for adult keywords (basic check)
     const adultTerms = ['sex', 'porn', 'adult', 'xxx', 'nude', 'naked'];
     if (adultTerms.some(term => domainName.toLowerCase().includes(term))) return;
+
+    console.log("Domain Catcher content script loaded!");
     
     // Extract SV (Search Volume)
     const svElement = row.querySelector('td.field_searchvolume');
